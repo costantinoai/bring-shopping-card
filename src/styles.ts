@@ -29,6 +29,8 @@ export const cardStyles = css`
 
     display: block;
     font-family: var(--paper-font-body1_-_font-family, 'Roboto', sans-serif);
+    /* Query container so we can scale the whole card down on tiny widths. */
+    container-type: inline-size;
   }
 
   * {
@@ -43,29 +45,32 @@ export const cardStyles = css`
     border-radius: var(--bring-radius);
   }
 
+  /* On very tiny cards, scale everything down a bit so text and controls
+     stay comfortable instead of cramped. */
+  @container (max-width: 279.98px) {
+    .container {
+      zoom: 0.85;
+    }
+  }
+
   /* Header */
   .header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding-bottom: 16px;
     gap: 12px;
     container-type: inline-size;
-  }
-
-  /* On narrow cards, drop the "Shopping Card" subtitle so the brand and the
-     action buttons all stay visible instead of truncating. */
-  @container (max-width: 360px) {
-    .logo-text .subtitle {
-      display: none;
-    }
   }
 
   .logo {
     display: flex;
     align-items: center;
     gap: 10px;
+    /* Grow to fill, but shrink below content width and clip the brand text so
+       the action buttons stay on one line and never leave the card. */
+    flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
   }
 
   .logo-icon {
@@ -91,6 +96,8 @@ export const cardStyles = css`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* Required for ellipsis to engage inside the flex row. */
+    min-width: 0;
     color: var(--bring-text-primary);
   }
 
@@ -108,6 +115,9 @@ export const cardStyles = css`
     gap: 8px;
     align-items: center;
     flex-shrink: 0;
+    /* Push to the right edge; when the row wraps, keep the cluster
+       right-aligned on its own line. */
+    margin-left: auto;
   }
 
   .header-btn {
