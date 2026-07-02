@@ -1,10 +1,7 @@
 """Helper functions for the Bring! Shopping Card integration."""
 from __future__ import annotations
 
-import json
 import logging
-import urllib.request
-from typing import Any
 
 from .const import BRING_CDN_BASE
 from .translations_data import (
@@ -16,52 +13,26 @@ from .translations_data import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Cache for translations loaded from Bring
-_translations_cache: dict[str, str] = {}
-
-
-async def load_translations_from_bring() -> dict[str, str]:
-    """Load translations from Bring locale files (German -> English)."""
-    global _translations_cache
-
-    if _translations_cache:
-        return _translations_cache
-
-    try:
-        url = "https://web.getbring.com/locale/articles.en-US.json"
-        with urllib.request.urlopen(url, timeout=10) as response:
-            data = json.loads(response.read().decode())
-            _translations_cache = data
-            _LOGGER.debug("Loaded %d translations from Bring", len(_translations_cache))
-    except Exception as err:
-        _LOGGER.warning("Failed to load translations from Bring: %s", err)
-        _translations_cache = {}
-
-    return _translations_cache
-
-
-def translate(text: str) -> str:
-    """Translate German item name to English."""
-    if not text:
-        return text
-
-    # Check cache from Bring API
-    if text in _translations_cache:
-        return _translations_cache[text]
-
-    # Return original if no translation found
-    return text
-
 
 def translate_category(category: str) -> str:
-    """Translate category name from German to English."""
+    """Map a Bring section id to a display label.
+
+    Bring's API always returns section ids as canonical German keys
+    (e.g. "Fleisch & Fisch"), regardless of the list's article language.
+    We map them to English labels for the card's (English) UI; unknown
+    sections are returned unchanged.
+    """
     if not category:
         return ""
     return CATEGORY_TRANSLATIONS.get(category, category)
 
 
 def get_image_url(item_name: str) -> str | None:
-    """Get CDN image URL for an item."""
+    """Get CDN image URL for an item.
+
+    The CDN is keyed by Bring's canonical (German) item id, so callers
+    should pass the ``userIconItemId`` rather than the localized name.
+    """
     if not item_name:
         return None
 
@@ -75,24 +46,16 @@ def get_icon_for_item(
     icon_id: str | None = None,
     category: str | None = None,
 ) -> str:
-    """Get appropriate emoji icon for an item (fallback when CDN fails)."""
-    # Try item name first (both original and translated)
+    """Get an appropriate emoji icon for an item (fallback when CDN fails)."""
+    # Try the item name (the localized name shown to the user)
     if item_name in ITEM_ICONS:
         return ITEM_ICONS[item_name]
 
-    translated = translate(item_name)
-    if translated in ITEM_ICONS:
-        return ITEM_ICONS[translated]
+    # Try the canonical (German) icon id, which is what the icon dicts key on
+    if icon_id and icon_id in ITEM_ICONS:
+        return ITEM_ICONS[icon_id]
 
-    # Try icon_id (German product name)
-    if icon_id:
-        if icon_id in ITEM_ICONS:
-            return ITEM_ICONS[icon_id]
-        translated_icon = translate(icon_id)
-        if translated_icon in ITEM_ICONS:
-            return ITEM_ICONS[translated_icon]
-
-    # Try category
+    # Fall back to a category icon
     if category:
         if category in CATEGORY_ICONS:
             return CATEGORY_ICONS[category]
@@ -101,20 +64,3 @@ def get_icon_for_item(
             return CATEGORY_ICONS[translated_cat]
 
     return DEFAULT_ICON
-
-
-def enrich_item(item: dict[str, Any], details_map: dict[str, dict]) -> dict[str, Any]:
-    """Enrich a shopping list item with translations, icons, and image URLs."""
-    name = item.get("name", "")
-    detail = details_map.get(name, {})
-    category = detail.get("userSectionId", "")
-    icon_item_id = detail.get("userIconItemId", name)
-
-    return {
-        "name": translate(name),
-        "originalName": name,
-        "specification": item.get("specification", ""),
-        "icon": get_icon_for_item(name, icon_item_id, category),
-        "imageUrl": get_image_url(icon_item_id or name),
-        "category": translate_category(category),
-    }

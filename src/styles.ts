@@ -50,12 +50,22 @@ export const cardStyles = css`
     justify-content: space-between;
     padding-bottom: 16px;
     gap: 12px;
+    container-type: inline-size;
+  }
+
+  /* On narrow cards, drop the "Shopping Card" subtitle so the brand and the
+     action buttons all stay visible instead of truncating. */
+  @container (max-width: 360px) {
+    .logo-text .subtitle {
+      display: none;
+    }
   }
 
   .logo {
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
   }
 
   .logo-icon {
@@ -79,6 +89,8 @@ export const cardStyles = css`
     font-size: 18px;
     letter-spacing: -0.3px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     color: var(--bring-text-primary);
   }
 
@@ -95,6 +107,7 @@ export const cardStyles = css`
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-shrink: 0;
   }
 
   .header-btn {

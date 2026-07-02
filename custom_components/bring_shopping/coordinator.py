@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, UPDATE_INTERVAL
-from .helpers import translate, translate_category, get_image_url, get_icon_for_item
+from .helpers import translate_category, get_image_url, get_icon_for_item
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -119,9 +119,22 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
         # Get items
         items_response = await self.bring.get_list(list_uuid)
 
-        # Get all item details (for images and categories)
-        details_response = await self.bring.get_all_item_details(list_uuid)
-        details_map = {d.itemId: d for d in details_response.items}
+        # Get all item details (for images and categories). These are optional
+        # enrichment; if they fail to load or parse we still show the list with
+        # its items rather than dropping everything.
+        try:
+            details_response = await self.bring.get_all_item_details(list_uuid)
+            details_items = details_response.items
+        except Exception as err:
+            _LOGGER.warning(
+                "Failed to fetch item details for list %s (%s); "
+                "showing items without images/categories: %s",
+                list_name,
+                list_uuid,
+                err,
+            )
+            details_items = []
+        details_map = {d.itemId: d for d in details_items}
 
         # Process purchase items
         purchase_items = []
@@ -135,7 +148,7 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
 
             purchase_items.append(
                 BringItem(
-                    name=translate(item_id),
+                    name=item_id,
                     original_name=item_id,
                     specification=item.specification or "",
                     icon=get_icon_for_item(item_id, icon_item_id, category),
@@ -156,7 +169,7 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
 
             recently_items.append(
                 BringItem(
-                    name=translate(item_id),
+                    name=item_id,
                     original_name=item_id,
                     specification=item.specification or "",
                     icon=get_icon_for_item(item_id, icon_item_id, category),
@@ -170,7 +183,7 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
         available_items = []
         seen = set()
 
-        for detail in details_response.items:
+        for detail in details_items:
             item_id = detail.itemId
             if item_id and item_id not in seen and item_id not in purchase_names:
                 seen.add(item_id)
@@ -180,7 +193,7 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
 
                 available_items.append(
                     BringItem(
-                        name=translate(item_id),
+                        name=item_id,
                         original_name=item_id,
                         specification="",
                         icon=get_icon_for_item(item_id, icon_item_id, category),

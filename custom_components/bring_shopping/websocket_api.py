@@ -46,11 +46,26 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_reorder_items)
 
 
-def _get_coordinator(hass: HomeAssistant) -> BringDataUpdateCoordinator | None:
-    """Get the coordinator from any config entry."""
+def _iter_coordinators(hass: HomeAssistant) -> list[BringDataUpdateCoordinator]:
+    """Return the coordinators for all configured Bring accounts."""
+    coordinators: list[BringDataUpdateCoordinator] = []
     for entry in hass.config_entries.async_entries(DOMAIN):
-        if hasattr(entry, "runtime_data") and entry.runtime_data:
-            return entry.runtime_data
+        if getattr(entry, "runtime_data", None):
+            coordinators.append(entry.runtime_data)
+    return coordinators
+
+
+def _coordinator_for_list(
+    hass: HomeAssistant, list_uuid: str
+) -> BringDataUpdateCoordinator | None:
+    """Find the coordinator (account) that owns the given list.
+
+    Supports multiple Bring accounts: operations are routed to whichever
+    account actually contains the list, rather than always the first one.
+    """
+    for coordinator in _iter_coordinators(hass):
+        if coordinator.data and list_uuid in coordinator.data.lists:
+            return coordinator
     return None
 
 
@@ -65,14 +80,22 @@ def ws_get_lists(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Get all available shopping lists."""
-    coordinator = _get_coordinator(hass)
+    """Get all available shopping lists across all configured accounts."""
+    coordinators = _iter_coordinators(hass)
 
-    if not coordinator:
+    if not coordinators:
         connection.send_error(msg["id"], "not_found", "Bring! integration not found")
         return
 
-    lists = coordinator.get_lists_info()
+    lists = []
+    seen: set[str] = set()
+    for coordinator in coordinators:
+        for info in coordinator.get_lists_info():
+            uuid = info.get("uuid")
+            if uuid and uuid not in seen:
+                seen.add(uuid)
+                lists.append(info)
+
     connection.send_result(msg["id"], {"lists": lists})
 
 
@@ -89,13 +112,13 @@ def ws_get_items(
     msg: dict[str, Any],
 ) -> None:
     """Get items for a specific shopping list."""
-    coordinator = _get_coordinator(hass)
+    list_uuid = msg[ATTR_LIST_UUID]
+    coordinator = _coordinator_for_list(hass, list_uuid)
 
     if not coordinator:
-        connection.send_error(msg["id"], "not_found", "Bring! integration not found")
+        connection.send_error(msg["id"], "not_found", f"List {list_uuid} not found")
         return
 
-    list_uuid = msg[ATTR_LIST_UUID]
     list_data = coordinator.data.lists.get(list_uuid) if coordinator.data else None
 
     if not list_data:
@@ -140,13 +163,13 @@ async def ws_add_item(
     msg: dict[str, Any],
 ) -> None:
     """Add an item to a shopping list."""
-    coordinator = _get_coordinator(hass)
+    list_uuid = msg[ATTR_LIST_UUID]
+    coordinator = _coordinator_for_list(hass, list_uuid)
 
     if not coordinator:
-        connection.send_error(msg["id"], "not_found", "Bring! integration not found")
+        connection.send_error(msg["id"], "not_found", f"List {list_uuid} not found")
         return
 
-    list_uuid = msg[ATTR_LIST_UUID]
     # Use original_name if provided (for items from available/recently)
     item_name = msg.get(ATTR_ORIGINAL_NAME, msg[ATTR_ITEM_NAME])
     specification = msg.get(ATTR_SPECIFICATION, "")
@@ -173,13 +196,13 @@ async def ws_complete_item(
     msg: dict[str, Any],
 ) -> None:
     """Mark an item as completed."""
-    coordinator = _get_coordinator(hass)
+    list_uuid = msg[ATTR_LIST_UUID]
+    coordinator = _coordinator_for_list(hass, list_uuid)
 
     if not coordinator:
-        connection.send_error(msg["id"], "not_found", "Bring! integration not found")
+        connection.send_error(msg["id"], "not_found", f"List {list_uuid} not found")
         return
 
-    list_uuid = msg[ATTR_LIST_UUID]
     item_name = msg[ATTR_ORIGINAL_NAME]
 
     success = await coordinator.async_complete_item(list_uuid, item_name)
@@ -205,13 +228,13 @@ async def ws_update_item(
     msg: dict[str, Any],
 ) -> None:
     """Update an item's specification."""
-    coordinator = _get_coordinator(hass)
+    list_uuid = msg[ATTR_LIST_UUID]
+    coordinator = _coordinator_for_list(hass, list_uuid)
 
     if not coordinator:
-        connection.send_error(msg["id"], "not_found", "Bring! integration not found")
+        connection.send_error(msg["id"], "not_found", f"List {list_uuid} not found")
         return
 
-    list_uuid = msg[ATTR_LIST_UUID]
     item_name = msg[ATTR_ORIGINAL_NAME]
     specification = msg[ATTR_SPECIFICATION]
 

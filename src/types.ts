@@ -29,6 +29,7 @@ export type CardSize = 'small' | 'medium' | 'large';
 export interface BringCardConfig {
   type: string;
   title?: string;
+  card_id?: string;
   show_recently?: boolean;
   show_available?: boolean;
   max_quick_items?: number;

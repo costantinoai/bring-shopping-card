@@ -128,13 +128,12 @@ export class BringShoppingCardEditor extends LitElement {
             <div class="description">Size of the product item cards</div>
           </div>
           <select
-            .value=${this._config.card_size ?? 'medium'}
             @change=${(e: Event) => this._valueChanged('card_size', (e.target as HTMLSelectElement).value)}
             style="padding: 8px; border: 1px solid var(--divider-color); border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color);"
           >
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
+            <option value="small" ?selected=${(this._config.card_size ?? 'medium') === 'small'}>Small</option>
+            <option value="medium" ?selected=${(this._config.card_size ?? 'medium') === 'medium'}>Medium</option>
+            <option value="large" ?selected=${(this._config.card_size ?? 'medium') === 'large'}>Large</option>
           </select>
         </div>
       </div>
@@ -167,13 +166,11 @@ export class BringShoppingCard extends LitElement {
 
   private _failedImages = new Set<string>();
   private _refreshInterval?: number;
-  private _cardId: string;
+  // Stable per-card key for persisting state (selected list, sort, order).
+  // Must NOT be random, or nothing survives a page reload. Set from config so
+  // multiple cards on one dashboard can be disambiguated via `card_id`.
+  private _cardKey = 'default';
   private _draggedItem: BringItem | null = null;
-
-  constructor() {
-    super();
-    this._cardId = Math.random().toString(36).substring(2, 9);
-  }
 
   public setConfig(config: BringCardConfig): void {
     if (!config) {
@@ -187,6 +184,7 @@ export class BringShoppingCard extends LitElement {
       card_size: 'medium',
       ...config,
     };
+    this._cardKey = this.config.card_id || 'default';
     this._sortBy = this.config.sort_default || 'manual';
     // Set data attribute for CSS size variants
     this.dataset.size = this.config.card_size || 'medium';
@@ -220,13 +218,13 @@ export class BringShoppingCard extends LitElement {
 
   private _loadSavedState(): void {
     try {
-      const savedList = localStorage.getItem(getStorageKey('list', this._cardId));
+      const savedList = localStorage.getItem(getStorageKey('list', this._cardKey));
       if (savedList) this._selectedListUuid = savedList;
 
-      const savedSort = localStorage.getItem(getStorageKey('sort', this._cardId));
+      const savedSort = localStorage.getItem(getStorageKey('sort', this._cardKey));
       if (savedSort) this._sortBy = savedSort as SortMode;
 
-      const savedOrder = localStorage.getItem(getStorageKey('order', this._cardId));
+      const savedOrder = localStorage.getItem(getStorageKey('order', this._cardKey));
       if (savedOrder) this._customOrder = JSON.parse(savedOrder);
     } catch (e) {
       console.error('Failed to load saved state:', e);
@@ -236,10 +234,10 @@ export class BringShoppingCard extends LitElement {
   private _saveState(): void {
     try {
       if (this._selectedListUuid) {
-        localStorage.setItem(getStorageKey('list', this._cardId), this._selectedListUuid);
+        localStorage.setItem(getStorageKey('list', this._cardKey), this._selectedListUuid);
       }
-      localStorage.setItem(getStorageKey('sort', this._cardId), this._sortBy);
-      localStorage.setItem(getStorageKey('order', this._cardId), JSON.stringify(this._customOrder));
+      localStorage.setItem(getStorageKey('sort', this._cardKey), this._sortBy);
+      localStorage.setItem(getStorageKey('order', this._cardKey), JSON.stringify(this._customOrder));
     } catch (e) {
       console.error('Failed to save state:', e);
     }
