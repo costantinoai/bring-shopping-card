@@ -1,22 +1,8 @@
-"""Translation data for Bring! items - German to English and category mappings."""
+"""Icon data for Bring! items and categories (emoji fallbacks for the card)."""
 from typing import Final
 
-# Category translations (German -> English)
-CATEGORY_TRANSLATIONS: Final[dict[str, str]] = {
-    "Fleisch & Fisch": "Meat & Fish",
-    "Milch & Käse": "Dairy & Cheese",
-    "Früchte & Gemüse": "Fruits & Vegetables",
-    "Getränke & Tabak": "Beverages",
-    "Brot & Gebäck": "Bread & Bakery",
-    "Haushalt & Gesundheit": "Household & Health",
-    "Snacks & Süsswaren": "Snacks & Sweets",
-    "Zutaten & Gewürze": "Ingredients & Spices",
-    "Fertig- & Tiefkühlprodukte": "Frozen & Ready Meals",
-    "Baumarkt & Garten": "Hardware & Garden",
-    "Getreideprodukte": "Grains & Cereals",
-}
-
-# Category icons (used as fallback)
+# Category icons (used as fallback). Keyed on the canonical (German) section id
+# returned by the API, with English aliases for convenience.
 CATEGORY_ICONS: Final[dict[str, str]] = {
     "Meat & Fish": "🥩",
     "Fleisch & Fisch": "🥩",
@@ -40,6 +26,8 @@ CATEGORY_ICONS: Final[dict[str, str]] = {
     "Baumarkt & Garten": "🔧",
     "Grains & Cereals": "🌾",
     "Getreideprodukte": "🌾",
+    "Pet Supplies": "🐾",
+    "Tierbedarf": "🐾",
 }
 
 # Item icons (German and English) - used as fallback when CDN fails

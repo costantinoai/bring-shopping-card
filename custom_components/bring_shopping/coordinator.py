@@ -11,7 +11,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, UPDATE_INTERVAL
-from .helpers import translate_category, get_image_url, get_icon_for_item
+from .helpers import (
+    load_section_translations,
+    translate_section,
+    get_image_url,
+    get_icon_for_item,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,12 +117,27 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
             _LOGGER.error("Unexpected error fetching Bring data: %s", err)
             raise UpdateFailed(f"Unexpected error: {err}") from err
 
+    def _list_locale(self, list_uuid: str) -> str:
+        """Determine the article language configured for a list in Bring."""
+        settings = getattr(self.bring, "user_list_settings", None) or {}
+        entry = settings.get(list_uuid) or {}
+        return entry.get("listArticleLanguage") or getattr(
+            self.bring, "user_locale", "de-CH"
+        )
+
     async def _fetch_list_data(
         self, list_uuid: str, list_name: str
     ) -> BringListData:
         """Fetch data for a single list."""
         # Get items
         items_response = await self.bring.get_list(list_uuid)
+
+        # Category ids come back as canonical German keys; localize them to the
+        # list's language using Bring's own translation files (cached).
+        locale = self._list_locale(list_uuid)
+        sections = await self.hass.async_add_executor_job(
+            load_section_translations, locale
+        )
 
         # Get all item details (for images and categories). These are optional
         # enrichment; if they fail to load or parse we still show the list with
@@ -153,7 +173,7 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
                     specification=item.specification or "",
                     icon=get_icon_for_item(item_id, icon_item_id, category),
                     image_url=image_url,
-                    category=translate_category(category),
+                    category=translate_section(category, sections),
                 )
             )
 
@@ -174,7 +194,7 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
                     specification=item.specification or "",
                     icon=get_icon_for_item(item_id, icon_item_id, category),
                     image_url=image_url,
-                    category=translate_category(category),
+                    category=translate_section(category, sections),
                 )
             )
 
@@ -198,7 +218,7 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
                         specification="",
                         icon=get_icon_for_item(item_id, icon_item_id, category),
                         image_url=image_url,
-                        category=translate_category(category),
+                        category=translate_section(category, sections),
                     )
                 )
 
