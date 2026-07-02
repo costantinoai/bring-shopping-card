@@ -6,6 +6,6 @@
   "documentation": "https://github.com/costantinoai/bring-shopping-card",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/costantinoai/bring-shopping-card/issues",
-  "requirements": ["bring-api==1.1.1"],
-  "version": "1.0.2"
+  "requirements": ["bring-api==1.1.2"],
+  "version": "1.0.3"
 }

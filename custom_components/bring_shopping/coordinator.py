@@ -85,9 +85,20 @@ class BringDataUpdateCoordinator(DataUpdateCoordinator[BringData]):
                     list_data = await self._fetch_list_data(list_uuid, list_name)
                     data.lists[list_uuid] = list_data
                 except Exception as err:
-                    _LOGGER.warning(
-                        "Failed to fetch data for list %s: %s", list_name, err
+                    _LOGGER.error(
+                        "Failed to fetch data for list %s (%s): %s",
+                        list_name,
+                        list_uuid,
+                        err,
                     )
+                    # Don't let a single unparseable item (e.g. a flyer/offer item)
+                    # make the whole list disappear from the card. Fall back to the
+                    # last known good data for this list if we have it.
+                    previous = (
+                        self.data.lists.get(list_uuid) if self.data else None
+                    )
+                    if previous is not None:
+                        data.lists[list_uuid] = previous
 
             return data
 
