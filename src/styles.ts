@@ -29,8 +29,7 @@ export const cardStyles = css`
 
     display: block;
     font-family: var(--paper-font-body1_-_font-family, 'Roboto', sans-serif);
-    /* Query container so we can scale the whole card down on tiny widths. */
-    container-type: inline-size;
+    container: bring-card / inline-size;
   }
 
   * {
@@ -39,37 +38,37 @@ export const cardStyles = css`
     box-sizing: border-box;
   }
 
+  ha-card {
+    display: block;
+    overflow: hidden;
+  }
+
   .container {
     padding: 16px;
     background: var(--bring-bg-primary);
     border-radius: var(--bring-radius);
-  }
-
-  /* On very tiny cards, scale everything down a bit so text and controls
-     stay comfortable instead of cramped. */
-  @container (max-width: 279.98px) {
-    .container {
-      zoom: 0.85;
-    }
+    min-width: 0;
+    transform-origin: top left;
   }
 
   /* Header */
   .header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     padding-bottom: 16px;
-    gap: 12px;
-    container-type: inline-size;
+    gap: 10px 12px;
+    min-width: 0;
+    container: bring-header / inline-size;
   }
 
   .logo {
     display: flex;
     align-items: center;
     gap: 10px;
-    /* Grow to fill, but shrink below content width and clip the brand text so
-       the action buttons stay on one line and never leave the card. */
-    flex: 1 1 auto;
-    min-width: 0;
+    /* The logo can shrink to its icon width, then the action row wraps below. */
+    flex: 1 1 0;
+    min-width: 46px;
     overflow: hidden;
   }
 
@@ -114,9 +113,9 @@ export const cardStyles = css`
     display: flex;
     gap: 8px;
     align-items: center;
+    justify-content: flex-end;
     flex-shrink: 0;
-    /* Push to the right edge; when the row wraps, keep the cluster
-       right-aligned on its own line. */
+    max-width: 100%;
     margin-left: auto;
   }
 
@@ -190,6 +189,7 @@ export const cardStyles = css`
     border-radius: var(--bring-radius-sm);
     padding: 6px;
     min-width: 150px;
+    max-width: min(220px, calc(100vw - 24px));
     z-index: 100;
     box-shadow: var(--bring-shadow);
   }
@@ -228,6 +228,7 @@ export const cardStyles = css`
     border-radius: var(--bring-radius-sm);
     padding: 6px;
     min-width: 160px;
+    max-width: min(220px, calc(100vw - 24px));
     z-index: 100;
     display: none;
     box-shadow: var(--bring-shadow);
@@ -372,6 +373,103 @@ export const cardStyles = css`
 
   .add-btn:active {
     transform: scale(0.97);
+  }
+
+  @container bring-card (max-width: 360px) {
+    .logo-text .subtitle {
+      display: none;
+    }
+  }
+
+  @container bring-card (max-width: 320px) {
+    .container {
+      padding: 12px;
+      zoom: 0.9;
+    }
+
+    .header {
+      gap: 8px;
+    }
+
+    .header-actions {
+      gap: 6px;
+    }
+
+    .header-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .list-btn {
+      width: auto;
+      padding: 8px 10px;
+    }
+
+    .list-btn-text {
+      max-width: 56px;
+    }
+  }
+
+  @container bring-card (max-width: 220px) {
+    .container {
+      padding: 10px;
+      zoom: 0.82;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+    }
+
+    .logo {
+      min-width: 32px;
+    }
+
+    .logo-text,
+    .list-btn-text {
+      display: none;
+    }
+
+    .list-btn {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+
+  @supports not (container-type: inline-size) {
+    @media (max-width: 480px) {
+      .container {
+        padding: 12px;
+        zoom: 0.9;
+      }
+
+      .header {
+        gap: 8px;
+      }
+
+      .logo-text .subtitle,
+      .list-btn-text {
+        display: none;
+      }
+
+      .header-actions {
+        gap: 6px;
+      }
+
+      .header-btn,
+      .list-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+      }
+
+      .list-btn {
+        padding: 0;
+        justify-content: center;
+      }
+    }
   }
 
   /* Section */
