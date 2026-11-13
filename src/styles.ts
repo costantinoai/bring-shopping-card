@@ -54,10 +54,10 @@ export const cardStyles = css`
   /* Header */
   .header {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     padding-bottom: 16px;
-    gap: 10px 12px;
+    gap: 12px;
     min-width: 0;
     container: bring-header / inline-size;
   }
@@ -66,9 +66,10 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     gap: 10px;
-    /* The logo can shrink to its icon width, then the action row wraps below. */
-    flex: 1 1 0;
-    min-width: 46px;
+    /* One header row at every width: the logo gives way (text clips with an
+       ellipsis, then the icon is covered) so the actions never leave the card. */
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
   }
 
@@ -375,12 +376,6 @@ export const cardStyles = css`
     transform: scale(0.97);
   }
 
-  @container bring-card (max-width: 360px) {
-    .logo-text .subtitle {
-      display: none;
-    }
-  }
-
   @container bring-card (max-width: 320px) {
     .container {
       padding: 12px;
@@ -422,11 +417,6 @@ export const cardStyles = css`
       height: 32px;
     }
 
-    .logo {
-      min-width: 32px;
-    }
-
-    .logo-text,
     .list-btn-text {
       display: none;
     }
