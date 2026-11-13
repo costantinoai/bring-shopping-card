@@ -3,3 +3,20 @@ node_modules/
 *.log
 .env
 HOW_TO_UPDATE_HACS_COMPONENT.md
+
+# Local agent and editor settings (never publish)
+.claude/
+.agents/
+skills-lock.json
+.mcp.json
+.idea
+.vscode
+
+# Empty placeholders the agent sandbox creates for home-folder files
+.bash_profile
+.bashrc
+.profile
+.zprofile
+.zshrc
+.gitconfig
+.ripgreprc
