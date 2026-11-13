@@ -262,7 +262,11 @@ export class BringShoppingCard extends LitElement {
     } catch (err) {
       console.error('Failed to fetch lists:', err);
       this._loading = false;
-      this._error = 'Failed to connect to Bring! integration';
+      // HA answers "unknown_command" when the bring_shopping integration is
+      // not installed or not added in Settings > Devices & Services.
+      this._error = (err as { code?: string })?.code === 'unknown_command'
+        ? 'Bring! Shopping Card integration not set up. Install it via HACS and add it in Settings > Devices & Services.'
+        : 'Failed to connect to Bring! integration';
     }
   }
 
